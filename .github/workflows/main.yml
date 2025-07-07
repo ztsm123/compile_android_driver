@@ -1,0 +1,77 @@
+# 工作流名称为 Android14-6.1
+name: Android14-6.1
+
+# 触发条件配置
+on:
+  workflow_dispatch:  # 允许手动触发工作流执行
+
+# 定义工作流中的作业
+jobs:
+  build:
+    # 指定运行环境为最新版Ubuntu
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 步骤1: 检出代码仓库
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      # 步骤2: 创建驱动目录并移动文件
+      - name: Prepare kerneldriver directory
+        run: |
+          mkdir kerneldriver
+          mv *.h *.c Makefile kerneldriver/
+          
+      # 步骤3: 修改内核版本代码定义
+      - name: Modify MY_LINUX_VERSION_CODE
+        run: |
+          sed -i '/#ifndef MY_LINUX_VERSION_CODE/a #define MY_LINUX_VERSION_CODE KERNEL_VERSION(6,1,75)' kerneldriver/ver_control.h
+
+      # 步骤4: 安装repo工具
+      - name: Install repo tool
+        run: |
+          sudo curl -L https://storage.googleapis.com/git-repo-downloads/repo -o /usr/local/bin/repo
+          sudo chmod a+x /usr/local/bin/repo
+
+      # 步骤5: 设置Android内核源码
+      - name: Set up Android Kernel source
+        run: |
+          mkdir -p android-kernel && cd android-kernel
+          repo init -u https://android.googlesource.com/kernel/manifest -b common-android14-6.1 --no-repo-verify --depth=1
+          repo sync --force-sync --no-clone-bundle --no-tags -f -c -j$(nproc)
+
+      # 步骤6: 复制内核驱动文件
+      - name: Copy kerneldriver
+        run: |
+          cd android-kernel
+          mkdir -p common/drivers 
+          cp -r ../kerneldriver common/drivers/
+
+      # 步骤7: 修改Makefile添加驱动编译配置
+      - name: Modify Makefile
+        run: |
+          cd android-kernel
+          echo "obj-m += kerneldriver/" >> common/drivers/Makefile
+          sed -i 's/^obj-y += .*/& kerneldriver\//' common/drivers/Makefile
+
+      # 步骤8: 安装构建依赖
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential flex bison libssl-dev libelf-dev bc
+
+      # 步骤9: 构建Android内核模块
+      - name: Build kernel module
+        run: |
+          cd android-kernel
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export KERNEL_SRC=$(pwd)/common
+          make -C $KERNEL_SRC M=$(pwd)/common/drivers/kerneldriver modules -j$(nproc)
+
+      # 步骤10: 上传编译好的驱动文件
+      - name: Upload kerneldriver.ko
+        uses: actions/upload-artifact@v3
+        with:
+          name: kerneldriver.ko
+          path: android-kernel/common/drivers/kerneldriver/rwProcMem_module.ko
