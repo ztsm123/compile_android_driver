@@ -20,7 +20,6 @@ jobs:
       - name: Prepare kerneldriver directory
         run: |
           mkdir kerneldriver
-          mkdir kerneldriver/result
           mv ./rwProcMem_module/*.h ./rwProcMem_module/*.c ./rwProcMem_module/Makefile kerneldriver/
           
       # 步骤3: 修改内核版本代码定义
@@ -60,11 +59,11 @@ jobs:
       - name: Build kernel module
         run: |
           cd android-kernel
-          tools/bazel run //common:kernel_aarch64_dist --destdir=../kerneldriver/result
+          tools/bazel run //common:kernel_aarch64_dist
 
       # 步骤10: 上传编译好的驱动文件
       - name: Upload kerneldriver.ko
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: kerneldriver.ko
-          path: android-kernel/drivers/kerneldriver/rwProcMem_module.ko
+          name: kerneldriver
+          path: android-kernel/out
