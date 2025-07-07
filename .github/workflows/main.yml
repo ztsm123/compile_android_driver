@@ -20,7 +20,7 @@ jobs:
       - name: Prepare kerneldriver directory
         run: |
           mkdir kerneldriver
-          mv ./rwProcMem_module/*.h ./rwProcMem_module/*.c Makefile kerneldriver/
+          mv ./rwProcMem_module/*.h ./rwProcMem_module/*.c ./rwProcMem_module/Makefile kerneldriver/
           
       # 步骤3: 修改内核版本代码定义
       - name: Modify MY_LINUX_VERSION_CODE
