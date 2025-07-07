@@ -71,7 +71,7 @@ jobs:
 
       # 步骤10: 上传编译好的驱动文件
       - name: Upload kerneldriver.ko
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: kerneldriver.ko
           path: android-kernel/common/drivers/kerneldriver/rwProcMem_module.ko
