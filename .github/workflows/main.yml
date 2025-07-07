@@ -14,7 +14,7 @@ jobs:
     steps:
       # 步骤1: 检出代码仓库
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
         
       # 步骤2: 创建驱动目录并移动文件
       - name: Prepare kerneldriver directory
@@ -36,6 +36,59 @@ jobs:
           libxml2-utils xsltproc unzip fontconfig python3 python-is-python3
           sudo curl -L https://storage.googleapis.com/git-repo-downloads/repo -o /usr/local/bin/repo
           sudo chmod a+x /usr/local/bin/repo
+
+      # 步骤5: 设置Android内核源码
+      - name: Set up Android Kernel source
+        run: |
+          mkdir -p android-kernel && cd android-kernel
+          repo init -u https://android.googlesource.com/kernel/manifest -b common-android14-6.1 --no-repo-verify --depth=1
+          repo sync --force-sync --no-clone-bundle --no-tags -f -c -j$(nproc)
+
+      # 步骤6: 复制内核驱动文件
+      - name: Copy kerneldriver
+        run: |
+          cd android-kernel
+          mkdir -p common/drivers 
+          cp -r ../kerneldriver common/drivers/
+
+      # 步骤7: 添加驱动到内核构建系统
+      - name: Add driver to kernel build
+        run: |
+          cd android-kernel
+          # 在drivers/Makefile中添加模块
+          echo "obj-y += kerneldriver/" >> common/drivers/Makefile
+          
+          # 在drivers/Kconfig中添加配置
+          echo 'source "drivers/kerneldriver/Kconfig"' >> common/drivers/Kconfig
+          
+          # 创建驱动Kconfig文件
+          cat > common/drivers/kerneldriver/Kconfig << 'EOF'
+          config RWPROCMEM_MODULE
+              tristate "rwProcMem kernel module"
+              default m
+              help
+                This module provides physical memory access.
+          EOF
+          
+          # 在gki_defconfig中启用模块
+          echo "CONFIG_RWPROCMEM_MODULE=m" >> common/android/configs/gki_defconfig
+
+      # 步骤8: 使用Android构建系统构建内核
+      - name: Build Android Kernel
+        run: |
+          cd android-kernel
+          # 设置构建配置
+          export BUILD_CONFIG=common/build.config.gki.aarch64
+          export LTO=thin
+          # 完整构建内核
+          build/build.sh -j$(nproc)
+
+      # 步骤9: 上传编译好的驱动文件
+      - name: Upload kerneldriver.ko
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: kerneldriver.ko
+          path: android-kernel/common/drivers/kerneldriver/rwProcMem_module.ko
 
       # 步骤5: 设置Android内核源码
       - name: Set up Android Kernel source
