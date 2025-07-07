@@ -33,7 +33,7 @@ jobs:
       - name: Set up Android Kernel source
         run: |
           mkdir -p android-kernel && cd android-kernel
-          repo init -u https://android.googlesource.com/kernel/manifest -b common-android14-6.1-2025-05
+          repo init -u https://android.googlesource.com/kernel/manifest -b common-android14-6.1
           repo sync
 
       # 步骤6: 复制内核驱动文件
