@@ -23,10 +23,6 @@ jobs:
           mv ./rwProcMem_module/*.h ./rwProcMem_module/*.c ./rwProcMem_module/Makefile kerneldriver/
           
       # 步骤3: 修改内核版本代码定义
-      - name: Modify MY_LINUX_VERSION_CODE
-        run: |
-          sed -i '/#ifndef MY_LINUX_VERSION_CODE/a #define MY_LINUX_VERSION_CODE KERNEL_VERSION(6,1,75)' kerneldriver/ver_control.h
-
       # 步骤4: 安装repo工具
       - name: Install repo tool
         run: |
@@ -37,22 +33,21 @@ jobs:
       - name: Set up Android Kernel source
         run: |
           mkdir -p android-kernel && cd android-kernel
-          repo init -u https://android.googlesource.com/kernel/manifest -b common-android14-6.1 --no-repo-verify --depth=1
-          repo sync --force-sync --no-clone-bundle --no-tags -f -c -j$(nproc)
+          repo init -u https://android.googlesource.com/kernel/manifest -b common-android14-6.1-2025-05
+          repo sync
 
       # 步骤6: 复制内核驱动文件
       - name: Copy kerneldriver
         run: |
           cd android-kernel
-          mkdir -p common/drivers 
-          cp -r ../kerneldriver common/drivers/
+          cp -r ../kerneldriver drivers/
 
       # 步骤7: 修改Makefile添加驱动编译配置
       - name: Modify Makefile
         run: |
           cd android-kernel
-          echo "obj-m += kerneldriver/" >> common/drivers/Makefile
-          sed -i 's/^obj-y += .*/& kerneldriver\//' common/drivers/Makefile
+          echo "obj-m += kerneldriver/" >> drivers/Makefile
+          sed -i 's/^obj-y += .*/& kerneldriver\//' drivers/Makefile
 
       # 步骤8: 安装构建依赖
       - name: Install dependencies
@@ -64,11 +59,11 @@ jobs:
       - name: Build kernel module
         run: |
           cd android-kernel
-          BUILD_CONFIG=common/build.config.gki.aarch64 LTO=thin build/build.sh -j32
+          LTO=thin BUILD_CONFIG=common/build.config.gki.aarch64 build/build.sh
 
       # 步骤10: 上传编译好的驱动文件
       - name: Upload kerneldriver.ko
         uses: actions/upload-artifact@v4.6.2
         with:
           name: kerneldriver.ko
-          path: android-kernel/common/drivers/kerneldriver/rwProcMem_module.ko
+          path: android-kernel/drivers/kerneldriver/rwProcMem_module.ko
