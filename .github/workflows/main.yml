@@ -14,7 +14,7 @@ jobs:
     steps:
       # 步骤1: 检出代码仓库
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4.2.2
         
       # 步骤2: 创建驱动目录并移动文件
       - name: Prepare kerneldriver directory
