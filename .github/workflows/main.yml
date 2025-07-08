@@ -46,6 +46,23 @@ jobs:
           # 添加新配置（如果不存在）
           grep -q "FRAME_WARN" common/Makefile || echo 'KBUILD_CFLAGS += -Wframe-larger-than=4096' >> common/Makefile
 
+      # ===== 新增步骤：安装 buildozer 并修复模块声明 =====
+      - name: Install buildozer
+        run: |
+          # 安装 Go 语言环境
+          sudo apt-get install -y golang-go
+          # 安装 buildozer
+          go install github.com/bazelbuild/buildtools/buildozer@latest
+          # 添加到 PATH
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Fix module declaration with buildozer
+        run: |
+          cd android-kernel
+          buildozer 'add module_outs drivers/kerneldriver/rwProcMem_module.ko' //common:kernel_aarch64
+        # 继续执行即使命令返回非零状态（buildozer 在添加已存在项时会失败）
+        continue-on-error: true
+
       - name: Install dependencies
         run: |
           sudo apt-get update
