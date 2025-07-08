@@ -1,66 +1,61 @@
-# 工作流名称为 Android14-6.1
 name: Android14-6.1
 
-# 触发条件配置
 on:
-  workflow_dispatch:  # 允许手动触发工作流执行
+  workflow_dispatch:
 
-# 定义工作流中的作业
 jobs:
   build:
-    # 指定运行环境为最新版Ubuntu
     runs-on: ubuntu-latest
     
     steps:
-      # 步骤1: 检出代码仓库
       - name: Checkout repository
         uses: actions/checkout@v4.2.2
         
-      # 步骤2: 创建驱动目录并移动文件
       - name: Prepare kerneldriver directory
         run: |
           mkdir kerneldriver
           mv ./rwProcMem_module/*.h ./rwProcMem_module/*.c ./rwProcMem_module/Makefile kerneldriver/
           
-      # 步骤3: 修改内核版本代码定义
-      # 步骤4: 安装repo工具
       - name: Install repo tool
         run: |
           sudo curl -L https://storage.googleapis.com/git-repo-downloads/repo -o /usr/local/bin/repo
           sudo chmod a+x /usr/local/bin/repo
 
-      # 步骤5: 设置Android内核源码
       - name: Set up Android Kernel source
         run: |
           mkdir -p android-kernel && cd android-kernel
           repo init -u https://android.googlesource.com/kernel/manifest -b common-android14-6.1
           repo sync
 
-      # 步骤6: 复制内核驱动文件
       - name: Copy kerneldriver
         run: |
           cd android-kernel
           cp -r ../kerneldriver common/drivers
 
-      # 步骤7: 修改Makefile添加驱动编译配置
       - name: Modify Makefile
         run: |
           cd android-kernel
           echo "obj-y += kerneldriver/" >> common/drivers/Makefile
 
-      # 步骤8: 安装构建依赖
+      # 新增步骤：修改栈帧大小限制为4096
+      - name: Increase stack frame size limit
+        run: |
+          cd android-kernel
+          # 查找并替换所有包含WARN的配置项
+          find . -type f -name "Makefile*" -exec sed -i 's/-Wframe-larger-than=[0-9]*/-Wframe-larger-than=4096/g' {} +
+          # 添加新配置（如果不存在）
+          grep -q "FRAME_WARN" common/Makefile || echo 'KBUILD_CFLAGS += -Wframe-larger-than=4096' >> common/Makefile
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential flex bison libssl-dev libelf-dev bc
 
-      # 步骤9: 构建Android内核模块
       - name: Build kernel module
         run: |
           cd android-kernel
           tools/bazel run //common:kernel_aarch64_dist
 
-      # 步骤10: 上传编译好的驱动文件
       - name: Upload kerneldriver.ko
         uses: actions/upload-artifact@v4.6.2
         with:
