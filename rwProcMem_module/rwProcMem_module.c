@@ -264,39 +264,7 @@ static ssize_t OnCmdHideKernelModule(struct ioctl_request *hdr, char __user* buf
 	return 0;
 }
 
-static inline ssize_t DispatchCommand(struct ioctl_request *hdr, char __user* buf) {
-	switch (hdr->cmd) {
-	case CMD_INIT_DEVICE_INFO:
-		return OnCmdInitDeviceInfo(hdr, buf);
-	case CMD_OPEN_PROCESS:
-		return OnCmdOpenProcess(hdr, buf);
-	case CMD_READ_PROCESS_MEMORY:
-		return OnCmdReadProcessMemory(hdr, buf);
-	case CMD_WRITE_PROCESS_MEMORY:
-		return OnCmdWriteProcessMemory(hdr, buf);
-	case CMD_CLOSE_PROCESS:
-		return OnCmdCloseProcess(hdr, buf);
-	case CMD_GET_PROCESS_MAPS_COUNT:
-		return OnCmdGetProcessMapsCount(hdr, buf);
-	case CMD_GET_PROCESS_MAPS_LIST:
-		return OnCmdGetProcessMapsList(hdr, buf);
-	case CMD_CHECK_PROCESS_ADDR_PHY:
-		return OnCmdCheckProcessPhyAddr(hdr, buf);
-	case CMD_GET_PID_LIST:
-		return OnCmdGetPidList(hdr, buf);
-	case CMD_SET_PROCESS_ROOT:
-		return OnCmdSetProcessRoot(hdr, buf);
-	case CMD_GET_PROCESS_RSS:
-		return OnCmdGetProcessRss(hdr, buf);
-	case CMD_GET_PROCESS_CMDLINE_ADDR:
-		return OnCmdGetProcessCmdlineAddr(hdr, buf);
-	case CMD_HIDE_KERNEL_MODULE:
-		return OnCmdHideKernelModule(hdr, buf);
-	default:
-		return -EINVAL;
-	}
-	return -EINVAL;
-}
+static ssize_t __attribute__((noinline)) DispatchCommand(struct ioctl_request *hdr, char __user* buf);
 
 static ssize_t rwProcMem_read(struct file* filp,
                               char __user* buf,
@@ -314,6 +282,41 @@ static ssize_t rwProcMem_read(struct file* filp,
         return -EINVAL;
     }
     return DispatchCommand(&hdr, buf + header_size);
+}
+
+// 修改2: 将函数定义移到文件末尾防止内联
+static ssize_t DispatchCommand(struct ioctl_request *hdr, char __user* buf) {
+    switch (hdr->cmd) {
+    case CMD_INIT_DEVICE_INFO:
+        return OnCmdInitDeviceInfo(hdr, buf);
+    case CMD_OPEN_PROCESS:
+        return OnCmdOpenProcess(hdr, buf);
+    case CMD_READ_PROCESS_MEMORY:
+        return OnCmdReadProcessMemory(hdr, buf);
+    case CMD_WRITE_PROCESS_MEMORY:
+        return OnCmdWriteProcessMemory(hdr, buf);
+    case CMD_CLOSE_PROCESS:
+        return OnCmdCloseProcess(hdr, buf);
+    case CMD_GET_PROCESS_MAPS_COUNT:
+        return OnCmdGetProcessMapsCount(hdr, buf);
+    case CMD_GET_PROCESS_MAPS_LIST:
+        return OnCmdGetProcessMapsList(hdr, buf);
+    case CMD_CHECK_PROCESS_ADDR_PHY:
+        return OnCmdCheckProcessPhyAddr(hdr, buf);
+    case CMD_GET_PID_LIST:
+        return OnCmdGetPidList(hdr, buf);
+    case CMD_SET_PROCESS_ROOT:
+        return OnCmdSetProcessRoot(hdr, buf);
+    case CMD_GET_PROCESS_RSS:
+        return OnCmdGetProcessRss(hdr, buf);
+    case CMD_GET_PROCESS_CMDLINE_ADDR:
+        return OnCmdGetProcessCmdlineAddr(hdr, buf);
+    case CMD_HIDE_KERNEL_MODULE:
+        return OnCmdHideKernelModule(hdr, buf);
+    default:
+        return -EINVAL;
+    }
+    return -EINVAL;
 }
 
 #ifdef CONFIG_MODULE_GUIDE_ENTRY
