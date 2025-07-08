@@ -58,7 +58,7 @@ jobs:
       - name: Build kernel module
         run: |
           cd android-kernel
-          tools/bazel run //common:kernel_aarch64_dist
+          tools/bazel --experimental_local_lockfree_output run //common:kernel_aarch64_dist
 
       # 步骤10: 上传编译好的驱动文件
       - name: Upload kerneldriver.ko
