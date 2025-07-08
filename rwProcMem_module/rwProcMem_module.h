@@ -13,7 +13,6 @@
 #include <linux/uaccess.h>
 #include <linux/kernel.h>
 #include <linux/version.h>
-#include <sys/types.h>
 
 #include "api_proxy.h"
 #include "phy_mem.h"
