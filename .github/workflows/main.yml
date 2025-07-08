@@ -66,4 +66,4 @@ jobs:
         uses: actions/upload-artifact@v4.6.2
         with:
           name: kerneldriver
-          path: android-kernel/out
+          path: android-kernel/out/kernel_aarch64
