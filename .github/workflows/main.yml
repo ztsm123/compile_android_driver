@@ -67,26 +67,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential flex bison libssl-dev libelf-dev bc
-
-      - name: Build kernel module
-        run: |
-          cd android-kernel
-          tools/bazel run //common:kernel_aarch64_dist
-        continue-on-error: true
-        
-      - name: Fix module declaration with buildozer
-        run: |
-          cd android-kernel
-          buildozer 'add module_outs drivers/kerneldriver/rwProcMem_module.ko' //common:kernel_aarch64
-        # 继续执行即使命令返回非零状态（buildozer 在添加已存在项时会失败）
-        continue-on-error: true
-      - name: Build kernel module
-        run: |
-          cd android-kernel
-          tools/bazel run //common:kernel_aarch64_dist
-        continue-on-error: true
+          
       - name: Upload kerneldriver.ko
         uses: actions/upload-artifact@v4.6.2
         with:
           name: kerneldriver
-          path: android-kernel/out/kernel_aarch64
+          path: android-kernel/tools
