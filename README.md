@@ -1,3 +1,4 @@
+**Read this in other languages: [English](README.md), [中文](README_zh.md).**
 # GitHub Action automatic kernel driver compilation tool
 
 This GitHub Actions workflow can help you compile Android kernel drivers online without the need for a local compilation environment. It is particularly suitable for solving problems such as inability to access Google source code repositories and complex local compilation environment configurations, and can complete the entire compilation process within 1 hour.
