@@ -22,7 +22,7 @@
    - 驱动模块名称（Makefile 中定义的 .ko 文件名）
 
 ### 2. 配置工作流
-修改 `.github/workflows/build-driver.yml` 文件中的以下关键参数：
+修改 `.github/workflows/main.yml` 文件中的以下关键参数：
 
 ```yaml
 name: Android14-6.1  # 修改为你的内核版本（格式：Android<大版本>-<内核版本>）
