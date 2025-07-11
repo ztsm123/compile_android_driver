@@ -14,7 +14,7 @@ jobs:
       - name: Prepare kerneldriver directory
         run: |
           mkdir kerneldriver
-          mv ./rwProcMem_module/*.h ./rwProcMem_module/*.c ./rwProcMem_module/Makefile kerneldriver/
+          mv ./code/*.h ./code/*.c ./code/Makefile kerneldriver/
           
       - name: Install repo tool
         run: |
