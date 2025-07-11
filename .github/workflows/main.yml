@@ -37,7 +37,33 @@ jobs:
           cd android-kernel
           echo "obj-y += kerneldriver/" >> common/drivers/Makefile
 
-      # 新增步骤：修改栈帧大小限制为4096
+      # 新增步骤：将模块添加到 GKI 模块列表（保持排序）
+      - name: Add module to GKI modules list
+        run: |
+          cd android-kernel
+          # 插入新模块并保持列表排序
+          awk -i inplace '
+            BEGIN { added=0 }
+            /_COMMON_GKI_MODULES_LIST = \[/ { in_list=1 }
+            in_list && /\]/ {
+              # 确保在列表结束前添加新模块（如果尚未添加）
+              if (!added) {
+                print "    \"drivers/kerneldriver/rwProcMem_module.ko\","
+                added=1
+              }
+              in_list=0
+            }
+            in_list && !added && /drivers\/kerneldriver/ { next }  # 避免重复
+            in_list && !added {
+              # 按字母顺序插入到正确位置
+              if ("drivers/kerneldriver/rwProcMem_module.ko" < $0) {
+                print "    \"drivers/kerneldriver/rwProcMem_module.ko\","
+                added=1
+              }
+            }
+            { print }
+          ' common/modules.bzl
+
       - name: Increase stack frame size limit
         run: |
           cd android-kernel
@@ -46,30 +72,19 @@ jobs:
           # 添加新配置（如果不存在）
           grep -q "FRAME_WARN" common/Makefile || echo 'KBUILD_CFLAGS += -Wframe-larger-than=4096' >> common/Makefile
 
-      # ===== 新增步骤：安装 buildozer 并修复模块声明 =====
-      - name: Install buildozer
-        run: |
-          # 安装 Go 语言环境
-          sudo apt-get install -y golang-go
-          # 安装 buildozer
-          go install github.com/bazelbuild/buildtools/buildozer@latest
-          # 添加到 PATH
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
-      - name: Fix module declaration with buildozer
-        run: |
-          cd android-kernel
-          buildozer 'add module_outs drivers/kerneldriver/rwProcMem_module.ko' //common:kernel_aarch64
-        # 继续执行即使命令返回非零状态（buildozer 在添加已存在项时会失败）
-        continue-on-error: true
-
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential flex bison libssl-dev libelf-dev bc
-          
+
+      - name: Build kernel module
+        run: |
+          cd android-kernel
+          tools/bazel run //common:kernel_aarch64_dist
+        continue-on-error: true
+        
       - name: Upload kerneldriver.ko
         uses: actions/upload-artifact@v4.6.2
         with:
           name: kerneldriver
-          path: android-kernel/tools
+          path: android-kernel/out/kernel_aarch64
