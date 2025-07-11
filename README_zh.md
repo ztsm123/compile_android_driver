@@ -1,154 +1,85 @@
 **其他语言版本: [English](README.md), [中文](README_zh.md).**
-# GitHub Action 自动内核驱动编译工具
+# 自动化内核驱动构建工具
+本 GitHub Action 可在云端自动化编译 Android 内核驱动程序，无需本地编译环境。解决访问 Google 源码仓库等问题，编译时间控制在 1 小时内。
 
-这个 GitHub Actions 工作流可以帮助你在线编译 Android 内核驱动程序，无需本地编译环境。特别适合解决无法访问 Google 源码仓库、本地编译环境配置复杂等问题，能在 1 小时内完成完整编译过程。
+## 核心功能
 
-## 主要功能
-
-✅ 自动从 Google 官方源码仓库拉取指定版本的内核源码  
-✅ 集成驱动代码到内核构建系统  
-✅ 自动修改构建配置适配驱动模块  
-✅ 智能选择构建方式（基于内核版本）  
-✅ 一键下载编译结果（驱动模块 + boot.img）
+- ✅ **云端编译** - 无需本地环境配置
+- ✅ **自动源码管理** - 从官方仓库获取 Android 内核源码
+- ✅ **版本感知构建** - 自动选择正确的构建系统
+- ✅ **参数化输入** - 通过工作流参数自定义构建
+- ✅ **结果打包** - 下载编译好的驱动和内核镜像
 
 ## 使用指南
 
-### 1. 准备工作
-1. 在仓库中创建 `code` 目录，放入你的驱动源码：
-   - 所有 `.c` 和 `.h` 源文件
-   - `Makefile` 文件
-2. 确定你的设备信息：
-   - 内核大版本（设置 > 关于手机）
-   - 设备架构（arm64/x86 等）
-   - 驱动模块名称（Makefile 中定义的 .ko 文件名）
+### 1. 仓库设置
+1. 在仓库中创建 `code` 目录
+2. 将以下文件放入 `code` 目录：
+   - 驱动源文件 (`.c` 和 `.h`)
+   - 驱动的 `Makefile`
+   - 其他依赖文件
 
-### 2. 配置工作流
-修改 `.github/workflows/main.yml` 文件中的以下关键参数：
+### 2. 运行工作流
+1. 转到 GitHub 仓库的 **Actions** 标签页
+2. 选择 **Android Kernel Driver Builder**
+3. 点击 **Run workflow**
+4. 提供以下参数：
+   - `android_version`: Android 版本 (例如 `14`)
+   - `kernel_version`: 内核版本 (例如 `6.1`)
+   - `driver_name`: 驱动文件名 (例如 `mydriver.ko`)
+   - `target_arch`: 设备架构 (默认 `aarch64`)
 
-```yaml
-name: Android14-6.1  # 修改为你的内核版本（格式：Android<大版本>-<内核版本>）
-
-# ... 其他部分保持不变 ...
-
-- name: Add module to GKI modules list
-  run: |
-    cd android-kernel
-    awk -i inplace '
-      # ... 脚本内容 ...
-      print "    \"drivers/kerneldriver/rwProcMem_module.ko\","  # 修改为你的驱动模块名
-      # ... 脚本内容 ...
-    ' common/modules.bzl
-
-- name: Build kernel module
-  run: |
-    cd android-kernel
-    # 智能选择构建方式
-    if [[ "${{ github.event.inputs.kernel_name }}" =~ Android(9|10|11) ]]; then
-      echo "使用旧版构建系统 (Android 9-11)"
-      build/build.sh
-    else
-      echo "使用新版 Bazel 构建系统 (Android 12+)"
-      tools/bazel run //common:kernel_aarch64_dist  # 修改架构如 //common:kernel_x86_64_dist
-    fi
-
-- name: Upload kerneldriver.ko
-  uses: actions/upload-artifact@v4.6.2
-  with:
-    name: kerneldriver
-    path: android-kernel/out/kernel_aarch64  # 修改为对应架构路径
-```
-
-### 3. 需要修改的关键参数
-
-| 参数位置 | 说明 | 示例值 |
-|----------|------|--------|
-| `name` | 内核版本 | `Android12-5.15` |
-| 驱动模块名 | 你的驱动文件名 | `my_driver.ko` |
-| 构建目标 | 设备架构 | `//common:kernel_x86_64_dist` |
-| 输出路径 | 编译结果路径 | `android-kernel/out/kernel_x86_64` |
-
-### 4. 启动编译
-1. 提交代码到 GitHub 仓库
-2. 访问仓库的 Actions 标签页
-3. 选择 "Build Kernel Driver" 工作流
-4. 点击 "Run workflow" 按钮
-5. 等待约 45-60 分钟完成编译
-
-### 5. 获取结果
-编译完成后：
-1. 在 Actions 页面找到成功的构建
-2. 下载 "kerneldriver" 压缩包
-3. 解压获取：
-   - 编译好的驱动模块 (.ko)
-   - 完整的内核镜像 (boot.img)
+### 3. 获取结果
+编译成功后 (45-60 分钟)：
+1. 转到完成的工作流运行
+2. 下载 `kernel-driver-<架构>` 产物
+3. 解压后包含：
+   - 编译好的驱动 (`.ko` 文件)
+   - 内核镜像 (`boot.img`)
    - 构建日志
 
-## 技术细节
+## 配置参考
 
-### 智能构建系统选择
-```bash
-# 根据内核版本自动选择构建系统
-if [[ "${{ github.event.inputs.kernel_name }}" =~ Android(9|10|11) ]]; then
-  build/build.sh  # Android 9-11 使用传统构建系统
-else
-  tools/bazel run //common:kernel_aarch64_dist  # Android 12+ 使用 Bazel
-fi
-```
+### 输入参数
 
-### 自动集成驱动到内核
-```bash
-# 将驱动代码复制到内核源码树
-cp -r ../kerneldriver common/drivers
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `android_version` | Android 系统版本 | `11`, `12`, `13`, `14` |
+| `kernel_version` | Linux 内核版本 | `5.10`, `5.15`, `6.1` |
+| `driver_name` | 驱动文件名 | `custom_driver.ko` |
+| `target_arch` | 设备 CPU 架构 | `aarch64`, `x86_64` |
 
-# 添加到内核构建系统
-echo "obj-y += kerneldriver/" >> common/drivers/Makefile
+### 技术说明
 
-# 注册为 GKI 模块
-awk -i inplace '
-  # 在模块列表的适当位置插入新驱动
-  # 保持字母顺序避免编译错误
-' common/modules.bzl
-```
+1. **构建系统选择**：
+   - Android 11 及更早版本：使用传统 `build.sh` 系统
+   - Android 12 及更新版本：使用现代 Bazel 构建系统
 
-### 编译环境配置
-```bash
-# 解决常见编译错误
-find . -type f -name "Makefile*" -exec sed -i \
-  's/-Wframe-larger-than=[0-9]*/-Wframe-larger-than=4096/g' {} +
+2. **源码管理**：
+   - 自动从 Google 仓库获取内核源码
+   - 使用并行下载加速同步过程
 
-# 安装必备工具链
-sudo apt-get install -y build-essential flex bison \
-  libssl-dev libelf-dev bc
-```
+3. **驱动集成**：
+   - 自动将驱动添加到内核构建系统
+   - 注册驱动为 GKI 模块
+   - 自动处理 Makefile 修改
 
-## 常见问题解决
+## 故障排除
 
-**Q: 编译失败提示 "Module not found in GKI list"**  
-A: 确保 `Add module to GKI modules list` 步骤中的驱动文件名与 Makefile 中的完全一致
+**Q: "repo sync" 步骤失败**  
+A: 重新运行工作流，Google 服务器偶尔会出现超时
 
-**Q: 下载的 boot.img 刷入后无法启动**  
-A: 检查设备架构配置是否正确，特别是：
-- `tools/bazel run //common:kernel_xxx_dist` 中的架构
-- 上传路径 `android-kernel/out/kernel_xxx`
+**Q: 输出产物中找不到驱动文件**  
+A: 检查：
+- `driver_name` 参数是否正确（需与 Makefile 匹配）
+- 源文件是否在 `/code` 目录
+- Makefile 是否生成预期的 `.ko` 文件
 
-**Q: 编译过程卡在 repo sync**  
-A: GitHub 服务器访问 Google 源码库不稳定时可能发生，可尝试：
-1. 重新运行工作流
-2. 使用镜像源（需修改 repo init 的 URL）
+**Q: 出现 "Kernel configuration not found" 错误**  
+A: 确认内核版本在 [Android 内核源码](https://android.googlesource.com/kernel/manifest/) 中存在对应分支
 
-**Q: 如何支持旧版 Android (9-11)?**  
-A: 工作流已自动处理：
-- Android 9-11：使用传统 build.sh
-- Android 12+：使用 Bazel 构建系统
+## 支持
 
-## 贡献与改进
-
-欢迎提交 Issue 或 PR 改进此项目：
-- 添加更多设备架构支持
-- 优化构建速度
-- 增加镜像源选择
-- 改进错误处理机制
-
-## 许可证
-
-本项目采用 [MIT 许可证](LICENSE)，可自由用于个人和商业项目。
+问题反馈和功能请求：
+- [提交 Issue](https://github.com/your-repo/issues)
+- 请提供工作流日志和输入参数

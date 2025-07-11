@@ -1,7 +1,21 @@
-name: Android14-6.1
+name: Android Kernel Driver Builder
 
 on:
   workflow_dispatch:
+    inputs:
+      android_version:
+        description: 'Android Version (e.g., 14)'
+        required: true
+      kernel_version:
+        description: 'Kernel Version (e.g., 6.1)'
+        required: true
+      driver_name:
+        description: 'Driver Module Name (e.g., mydriver.ko)'
+        required: true
+      target_arch:
+        description: 'Target Architecture (aarch64, x86_64, etc.)'
+        required: true
+        default: 'aarch64'
 
 jobs:
   build:
@@ -24,8 +38,8 @@ jobs:
       - name: Set up Android Kernel source
         run: |
           mkdir -p android-kernel && cd android-kernel
-          repo init -u https://android.googlesource.com/kernel/manifest -b common-android14-6.1
-          repo sync
+          repo init -u https://android.googlesource.com/kernel/manifest -b common-android${{ github.event.inputs.android_version }}-${{ github.event.inputs.kernel_version }}
+          repo sync -j$(nproc) -c --no-tags --optimized-fetch --force-sync
 
       - name: Copy kerneldriver
         run: |
@@ -37,27 +51,24 @@ jobs:
           cd android-kernel
           echo "obj-y += kerneldriver/" >> common/drivers/Makefile
 
-      # 新增步骤：将模块添加到 GKI 模块列表（保持排序）
       - name: Add module to GKI modules list
         run: |
           cd android-kernel
-          # 插入新模块并保持列表排序
-          awk -i inplace '
+          MODULE_NAME="drivers/kerneldriver/${{ github.event.inputs.driver_name }}"
+          
+          awk -i inplace -v module="$MODULE_NAME" '
             BEGIN { added=0 }
             /_COMMON_GKI_MODULES_LIST = \[/ { in_list=1 }
             in_list && /\]/ {
-              # 确保在列表结束前添加新模块（如果尚未添加）
               if (!added) {
-                print "    \"drivers/kerneldriver/rwProcMem_module.ko\","
+                print "    \"" module "\","
                 added=1
               }
               in_list=0
             }
-            in_list && !added && /drivers\/kerneldriver/ { next }  # 避免重复
             in_list && !added {
-              # 按字母顺序插入到正确位置
-              if ("drivers/kerneldriver/rwProcMem_module.ko" < $0) {
-                print "    \"drivers/kerneldriver/rwProcMem_module.ko\","
+              if (module < $0) {
+                print "    \"" module "\","
                 added=1
               }
             }
@@ -67,24 +78,31 @@ jobs:
       - name: Increase stack frame size limit
         run: |
           cd android-kernel
-          # 查找并替换所有包含WARN的配置项
           find . -type f -name "Makefile*" -exec sed -i 's/-Wframe-larger-than=[0-9]*/-Wframe-larger-than=4096/g' {} +
-          # 添加新配置（如果不存在）
           grep -q "FRAME_WARN" common/Makefile || echo 'KBUILD_CFLAGS += -Wframe-larger-than=4096' >> common/Makefile
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential flex bison libssl-dev libelf-dev bc
+          sudo apt-get install -y build-essential flex bison libssl-dev libelf-dev bc python-is-python3
 
       - name: Build kernel module
         run: |
           cd android-kernel
-          tools/bazel run //common:kernel_aarch64_dist
-        continue-on-error: true
+          
+          if [ ${{ github.event.inputs.android_version }} -lt 12 ]; then
+            echo "Using legacy build system for Android ${{ github.event.inputs.android_version }}"
+            build/build.sh
+          else
+            echo "Using Bazel build system for Android ${{ github.event.inputs.android_version }}"
+            tools/bazel run //common:kernel_${{ github.event.inputs.target_arch }}_dist
+          fi
+        continue-on-error: false
         
-      - name: Upload kerneldriver.ko
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: kerneldriver
-          path: android-kernel/out/kernel_aarch64
+          name: kernel-driver-${{ github.event.inputs.target_arch }}
+          path: |
+            android-kernel/out/kernel_${{ github.event.inputs.target_arch }}/common
+            android-kernel/common/drivers/kerneldriver/*.ko
