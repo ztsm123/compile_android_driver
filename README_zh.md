@@ -1,3 +1,4 @@
+**其他语言版本: [English](README.md), [中文](README_zh.md).**
 # GitHub Action 自动内核驱动编译工具
 
 这个 GitHub Actions 工作流可以帮助你在线编译 Android 内核驱动程序，无需本地编译环境。特别适合解决无法访问 Google 源码仓库、本地编译环境配置复杂等问题，能在 1 小时内完成完整编译过程。
