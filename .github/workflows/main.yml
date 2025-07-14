@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       android_version:
-        description: 'Android Version (e.g., 14)'
+        description: 'Android Version (Kernel) (e.g., 14)'
         required: true
       kernel_version:
         description: 'Kernel Version (e.g., 6.1)'
