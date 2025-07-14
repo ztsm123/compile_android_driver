@@ -31,7 +31,7 @@ This GitHub Action automates the process of building Android kernel drivers in t
    - `target_arch`: Device architecture (default: `aarch64`)
 
 ### 3. Retrieving Results
-After successful compilation (45-60 minutes):
+After successful compilation (30minutes):
 1. Go to the completed workflow run
 2. Download the `kernel-driver-<arch>` artifact
 3. Extract to find:
