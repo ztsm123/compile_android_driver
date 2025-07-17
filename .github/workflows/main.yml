@@ -98,9 +98,7 @@ jobs:
           cd android-kernel
           if [ ${{ github.event.inputs.android_version }} -le 12 ]; then
             BUILD_CONFIG=common/build.config.gki.${{ github.event.inputs.target_arch }} LTO=thin build/build.sh -j32
-            cp /home/runner/work/compile_android_driver/compile_android_driver/android-kernel/out/android12-5.10/common/modules.order common/android/gki_aarch64_modules
             OUTPUT_PATH="out/android${{ github.event.inputs.android_version }}-${{ github.event.inputs.kernel_version }}"
-            BUILD_CONFIG=common/build.config.gki.${{ github.event.inputs.target_arch }} LTO=thin build/build.sh -j32
           else
             echo "Using Bazel build system for Android ${{ github.event.inputs.android_version }}"
             tools/bazel run //common:kernel_${{ github.event.inputs.target_arch }}_dist
