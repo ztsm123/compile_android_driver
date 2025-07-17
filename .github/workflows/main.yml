@@ -52,7 +52,7 @@ jobs:
           echo "obj-y += kerneldriver/" >> common/drivers/Makefile
 
       - name: Add module to GKI modules list
-        if: ${{ github.event.inputs.android_version > 12 }}
+        if: ${{ github.event.inputs.android_version > 13 }}
         run: |
           cd android-kernel
           MODULE_NAME="drivers/kerneldriver/${{ github.event.inputs.driver_name }}"
@@ -77,7 +77,7 @@ jobs:
           ' common/modules.bzl
           
       - name: Prepare module list for legacy builds
-        if: ${{ github.event.inputs.android_version <= 12 }}
+        if: ${{ github.event.inputs.android_version <= 13 }}
         run: |
           cd android-kernel
           echo "drivers/kerneldriver/${{ github.event.inputs.driver_name }}" >> common/android/gki_aarch64_modules
