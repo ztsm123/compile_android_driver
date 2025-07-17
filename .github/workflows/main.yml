@@ -80,7 +80,8 @@ jobs:
         if: ${{ github.event.inputs.android_version <= 12 }}
         run: |
           cd android-kernel
-          echo "drivers/kerneldriver/${{ github.event.inputs.driver_name }}" > common/android/gki_${{ github.event.inputs.target_arch }}_modules
+          echo "drivers/kerneldriver/${{ github.event.inputs.driver_name }}" > common/android/gki_aarch64_modules
+          cat common/android/gki_aarch64_modules
       - name: Increase stack frame size limit
         run: |
           cd android-kernel
