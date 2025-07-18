@@ -100,6 +100,11 @@ jobs:
             OUTPUT_PATH="out/android${{ github.event.inputs.android_version }}-${{ github.event.inputs.kernel_version }}/dist"
           else
             echo "Using Bazel build system for Android ${{ github.event.inputs.android_version }}"
+            export BAZEL_OPTS="--host_jvm_args=-Xmx6g --jobs=$(($(nproc) - 1)) --disk_cache=./.bazel_disk_cache"
+            echo "startup --host_jvm_args=-Xmx6g" > .bazelrc
+            echo "build --jobs=$(($(nproc) - 1))" >> .bazelrc
+            echo "build --local_ram_resources=HOST_RAM*0.7" >> .bazelrc
+            echo "build --disk_cache=./.bazel_disk_cache" >> .bazelrc
             tools/bazel run //common:kernel_${{ github.event.inputs.target_arch }}_dist
             OUTPUT_PATH="out/kernel_${{ github.event.inputs.target_arch }}"
           fi
