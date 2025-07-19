@@ -91,6 +91,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential flex bison libssl-dev libelf-dev bc python-is-python3
+      - name: Fix missing kprobe symbols for Android 13
+        if: ${{ github.event.inputs.android_version == 13 }}
+        run: |
+          cd android-kernel
+          for symbol in register_kprobe unregister_kprobe; do
+            grep -q "$symbol" common/android/abi_gki_${{ github.event.inputs.target_arch }} || \
+            echo "$symbol" >> common/android/abi_gki_${{ github.event.inputs.target_arch }}
+          done
+          sed -i '/EXPORT_SYMBOL(unregister_kprobe);/a EXPORT_SYMBOL(register_kprobe);' common/kernel/kprobes.c
+          
       - name: Build kernel module
         run: |
           cd android-kernel
