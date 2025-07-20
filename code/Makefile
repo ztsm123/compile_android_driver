@@ -1,1 +1,2 @@
-﻿obj-m += rwProcMem_module.o
+obj-m += testok.o
+testok-y := memory.o process.o verify.o entry.o
